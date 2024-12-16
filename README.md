@@ -21,7 +21,7 @@ Le système doit permettre de :
 💡 La liste des propriétés des entités est libre ainsi que la gestion des conflits de booking de rendez-vous.
 
 </aside>
-
+<p></p>
 <aside>
 💡 Vous n’avez pas besoin de gérer la persistance des données, tout peut être en mémoire
 

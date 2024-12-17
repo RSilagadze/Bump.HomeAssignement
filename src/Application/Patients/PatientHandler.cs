@@ -6,12 +6,10 @@ namespace Application.Patients
     //Very simplified
     public sealed class PatientHandler
     {
-        private readonly IPatientRepository _patientRepository;
         private readonly IClientRepository _clientRepository;
 
-        public PatientHandler(IPatientRepository patientRepository, IClientRepository clientRepository)
+        public PatientHandler(IClientRepository clientRepository)
         {
-            _patientRepository = patientRepository;
             _clientRepository = clientRepository;
         }
 

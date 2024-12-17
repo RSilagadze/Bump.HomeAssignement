@@ -3,49 +3,41 @@
     //Very simple aggregate
     public sealed class Appointment
     {
-        public Appointment(string title, Patient patient, DateTime scheduleStartDateTime, DateTime scheduleEndDateTime)
+        public Appointment(string title, Patient patient, AppointmentSlot appointmentSlot)
         {
             Title = title;
             Patient = patient;
-            ScheduleStartDateTime = scheduleStartDateTime;
-            ScheduleEndDateTime = scheduleEndDateTime;
-
-            if (DurationInMinutes() <= 0)
-                throw new InvalidOperationException("Appointment duration cannot be 0 below or 0 minutes!");
+            AppointmentSlot = appointmentSlot;
         }
 
-        public Appointment(long id, string title, Patient patient, DateTime scheduleStartDateTime, DateTime scheduleEndDateTime)
+        public Appointment(long id, string title, Patient patient, AppointmentSlot appointmentSlot, DateTime? cancelDateTime)
         {
             Title = title;
             Patient = patient;
-            ScheduleStartDateTime = scheduleStartDateTime;
-            ScheduleEndDateTime = scheduleEndDateTime;
             Id = id;
-
-            if (DurationInMinutes() <= 0)
-                throw new InvalidOperationException("Appointment duration cannot be 0 below or 0 minutes!");
+            AppointmentSlot = appointmentSlot;
+            CancelDateTime = cancelDateTime;
         }
 
         public long Id { get; internal set; }         
         public string Title { get; }
         public Patient Patient { get; }
         public bool IsCancelled() => CancelDateTime != null;
-        public long DurationInMinutes() => (int)(ScheduleEndDateTime - ScheduleStartDateTime).TotalMinutes;
+        public AppointmentSlot AppointmentSlot { get; private set; }
 
-        public DateTime ScheduleStartDateTime { get; private set; }
-        public DateTime ScheduleEndDateTime { get; private set; }
         public DateTime? CancelDateTime { get; private set; }
 
-        public void Reschedule(DateTime newStartDateTime, DateTime newEndDateTime)
+        public void Reschedule(AppointmentSlot newAppointmentSlot)
         {
-            if (newEndDateTime <= newStartDateTime)
-                throw new InvalidOperationException("End date time cannot be earlier or same as start date!");
-            ScheduleStartDateTime = newStartDateTime;
-            ScheduleEndDateTime = newEndDateTime;
+            if (IsCancelled())
+                throw new InvalidOperationException($"Appointment {Id} already cancelled!");
+            AppointmentSlot = newAppointmentSlot;
         }
 
         public void Cancel()
         {
+            if (IsCancelled())
+                throw new InvalidOperationException($"Appointment {Id} already cancelled!");
             CancelDateTime = DateTime.Now;
         }
 

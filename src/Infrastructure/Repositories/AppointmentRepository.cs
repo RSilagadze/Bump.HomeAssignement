@@ -5,11 +5,13 @@ using Infrastructure.DTOs;
 namespace Infrastructure.Repositories
 {
     public sealed class AppointmentRepository(Func<ICollection<PatientDbDTO>> patientsProviderFunc, 
-        Func<ICollection<AppointmentDbDTO>> appointmentsProviderFunc) : IAppointmentRepository
+        Func<ICollection<AppointmentDbDTO>> appointmentsProviderFunc,
+        Func<ICollection<AppointmentSlotDbDTO>> appointmentsSlotProviderFunc) : IAppointmentRepository
     {
         public Task SaveAsync(Appointment appointment, CancellationToken cancellation = default)
         {
             var appointmentsSet = appointmentsProviderFunc();
+            var appointmentSlotsSet = appointmentsSlotProviderFunc();
 
             if (appointment.Id <= 0)
             {
@@ -19,12 +21,14 @@ namespace Infrastructure.Repositories
                     Id = appointmentsGeneratedId,
                     PatientId = appointment.Patient.Id,
                     CancelDateTime = appointment.CancelDateTime,
-                    ScheduleEndDateTime = appointment.ScheduleEndDateTime,
-                    ScheduleStartDateTime = appointment.ScheduleStartDateTime,
+                    ScheduleEndDateTime = appointment.AppointmentSlot.ScheduleEndDateTime,
+                    ScheduleStartDateTime = appointment.AppointmentSlot.ScheduleStartDateTime,
                     Title = appointment.Title
                 };
                 appointmentsSet.Add(dbDto);
                 appointment.Id = dbDto.Id;
+                appointmentSlotsSet.Remove(new AppointmentSlotDbDTO(appointment.AppointmentSlot.ScheduleStartDateTime, appointment.AppointmentSlot.ScheduleEndDateTime));
+
                 return Task.CompletedTask;
             }
 
@@ -33,11 +37,12 @@ namespace Infrastructure.Repositories
             if (appointmentDb == null)
                 return Task.CompletedTask;
 
-            appointmentDb.ScheduleEndDateTime = appointment.ScheduleEndDateTime;
-            appointmentDb.ScheduleStartDateTime = appointment.ScheduleStartDateTime;
+            appointmentDb.ScheduleEndDateTime = appointment.AppointmentSlot.ScheduleEndDateTime;
+            appointmentDb.ScheduleStartDateTime = appointment.AppointmentSlot.ScheduleStartDateTime;
             appointmentDb.CancelDateTime = appointment.CancelDateTime;
             appointmentDb.Title = appointment.Title;
- 
+            appointmentSlotsSet.Remove(new AppointmentSlotDbDTO(appointment.AppointmentSlot.ScheduleStartDateTime, appointment.AppointmentSlot.ScheduleEndDateTime));
+
             return Task.CompletedTask;
         }
 
@@ -55,13 +60,16 @@ namespace Infrastructure.Repositories
                 throw new InvalidOperationException($"Patient with id {appointmentDb.PatientId} does not exist in DB!");
 
             var patient = new Patient(patientDb.Id, patientDb.Name);
-            return new Appointment(appointmentDb.Id, appointmentDb.Title, patient, appointmentDb.ScheduleStartDateTime, appointmentDb.ScheduleEndDateTime);
-
+            return new Appointment(appointmentDb.Id, appointmentDb.Title, patient, new AppointmentSlot(appointmentDb.ScheduleStartDateTime, appointmentDb.ScheduleEndDateTime), appointmentDb.CancelDateTime);
         }
 
-        public Task<IEnumerable<Appointment>> GetAvailableAppointmentsAsync(CancellationToken cancellation = default)
+        public async Task<IEnumerable<AppointmentSlot>> GetAvailableAppointmentsAsync(CancellationToken cancellation = default)
         {
-            throw new NotImplementedException();
+            var appointmentSlotsDb = appointmentsSlotProviderFunc();
+
+            return appointmentSlotsDb
+                .Select(slotDb => new AppointmentSlot(slotDb.StartDateTime, slotDb.EndDateTime))
+                .ToList();
         }
     }
 }

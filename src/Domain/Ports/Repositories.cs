@@ -7,7 +7,7 @@ namespace Domain.Ports
     {
         Task SaveAsync(Appointment appointment, CancellationToken cancellation = default);
         Task<Appointment?> GetAsync(long id, CancellationToken cancellation = default);
-        Task<IEnumerable<Appointment>> GetAvailableAppointmentsAsync(CancellationToken cancellation = default);
+        Task<IEnumerable<AppointmentSlot>> GetAvailableAppointmentsAsync(CancellationToken cancellation = default);
     }
 
     public interface IPatientRepository

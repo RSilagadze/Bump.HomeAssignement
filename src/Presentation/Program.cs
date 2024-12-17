@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 using Application.Appointments;
 using Application.Clients;
@@ -7,7 +8,6 @@ using Domain.Ports;
 using Infrastructure.DTOs;
 using Infrastructure.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.Routing.Constraints;
 
 //Very simple example
@@ -19,6 +19,18 @@ builder.Services.AddRoutingCore().Configure<RouteOptions>(options => {
 var clientsDataHolder = new List<ClientDbDTO>();
 var patientsDataHolder = new List<PatientDbDTO>();
 var appointmentsDataHolder = new List<AppointmentDbDTO>();
+var appointmentSlotsDataHolder = new List<AppointmentSlotDbDTO>
+{
+    new(
+        DateTime.ParseExact("2024-12-20 14:00:00","yyyy-MM-dd HH:mm:ss",CultureInfo.InvariantCulture),
+        DateTime.ParseExact("2024-12-20 15:00:00","yyyy-MM-dd HH:mm:ss",CultureInfo.InvariantCulture)),
+    new(
+        DateTime.ParseExact("2024-12-20 16:00:00","yyyy-MM-dd HH:mm:ss",CultureInfo.InvariantCulture),
+        DateTime.ParseExact("2024-12-20 17:00:00","yyyy-MM-dd HH:mm:ss",CultureInfo.InvariantCulture)),
+    new(
+        DateTime.ParseExact("2024-12-21 16:00:00","yyyy-MM-dd HH:mm:ss",CultureInfo.InvariantCulture),
+        DateTime.ParseExact("2024-12-21 17:00:00","yyyy-MM-dd HH:mm:ss",CultureInfo.InvariantCulture))
+};
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -35,7 +47,7 @@ builder.Services.AddSingleton<IClientRepository>(_ =>
 });
 builder.Services.AddSingleton<IAppointmentRepository>(_ =>
 {
-    return new AppointmentRepository(() => patientsDataHolder, () => appointmentsDataHolder);
+    return new AppointmentRepository(() => patientsDataHolder, () => appointmentsDataHolder, () => appointmentSlotsDataHolder);
 });
 
 builder.Services.AddSingleton<AppointmentHandler>(p =>
@@ -53,9 +65,8 @@ builder.Services.AddSingleton<ClientHandler>(p =>
 
 builder.Services.AddSingleton<PatientHandler>(p =>
 {
-    var patientRepository = p.GetRequiredService<IPatientRepository>();
     var clientRepository = p.GetRequiredService<IClientRepository>();
-    return new PatientHandler(patientRepository, clientRepository);
+    return new PatientHandler(clientRepository);
 });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -107,6 +118,14 @@ appointmentsApi.MapPost("/cancel",
         return Results.Ok(result);
     });
 
+var slots = app.MapGroup("/schedule").WithTags("schedule").WithOpenApi();
+slots.MapGet("/",
+    async ([FromServices] AppointmentHandler handler) =>
+    {
+        var result = await handler.GetAvailableAppointmentSlots();
+        return Results.Ok(result);
+    });
+
 app.Run();
 
 
@@ -120,6 +139,8 @@ app.Run();
 [JsonSerializable(typeof(ScheduleAppointmentCommand))]
 [JsonSerializable(typeof(ReScheduleAppointmentCommand))]
 [JsonSerializable(typeof(CancelAppointmentCommand))]
+[JsonSerializable(typeof(AppointmentSlot))]
+[JsonSerializable(typeof(IEnumerable<AppointmentSlot>))]
 [JsonSourceGenerationOptions(AllowTrailingCommas = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, WriteIndented = true, DefaultBufferSize = 4096, PropertyNameCaseInsensitive = true)]
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {

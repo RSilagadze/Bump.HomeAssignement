@@ -35,7 +35,7 @@ namespace Infrastructure.Repositories
             var appointmentDb = appointmentsSet.FirstOrDefault(x => x.Id == appointment.Id);
 
             if (appointmentDb == null)
-                return Task.CompletedTask;
+                throw new InvalidOperationException($"Appointment {appointment.Id} was not found in database while saving operation!");
 
             appointmentDb.ScheduleEndDateTime = appointment.AppointmentSlot.ScheduleEndDateTime;
             appointmentDb.ScheduleStartDateTime = appointment.AppointmentSlot.ScheduleStartDateTime;
@@ -57,7 +57,7 @@ namespace Infrastructure.Repositories
 
             var patientDb = patientsSet.FirstOrDefault(x => x.Id == appointmentDb.PatientId);
             if (patientDb == null)
-                throw new InvalidOperationException($"Patient with id {appointmentDb.PatientId} does not exist in DB!");
+                throw new InvalidOperationException($"Patient with id {appointmentDb.PatientId} does not exist in DB while retrieving appointment!");
 
             var patient = new Patient(patientDb.Id, patientDb.Name);
             return new Appointment(appointmentDb.Id, appointmentDb.Title, patient, new AppointmentSlot(appointmentDb.ScheduleStartDateTime, appointmentDb.ScheduleEndDateTime), appointmentDb.CancelDateTime);

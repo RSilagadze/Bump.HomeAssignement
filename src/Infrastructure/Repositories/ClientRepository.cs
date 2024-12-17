@@ -29,7 +29,7 @@ namespace Infrastructure.Repositories
 
             var foundClientInDb = clientSet.FirstOrDefault(x => x.Id == client.Id);
             if (foundClientInDb == null)
-                return Task.CompletedTask;
+                throw new InvalidOperationException($"Client with id {client.Id} does not exist in Db while saving operation!");
 
             var patientsMaxId = patientsSet.Any() ? patientsSet.Max(x => x.Id) : 0;
             foreach (var clientNewAttachedPatient in client.NewAttachedPatients)
